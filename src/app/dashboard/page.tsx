@@ -26,18 +26,19 @@ export default function Dashboard() {
   const router = useRouter()
 
   useEffect(() => {
-    checkUser()
-  }, [])
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/login')
+        return
+      }
 
-  const checkUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      router.push('/login')
-      return
+      setUser(user)
+      fetchTasks(user.id)
     }
-    setUser(user)
-    fetchTasks(user.id)
-  }
+
+    checkUser()
+  }, [router])
 
   const fetchTasks = async (userId: string) => {
     const { data, error } = await supabase
