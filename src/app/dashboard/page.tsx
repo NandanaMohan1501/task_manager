@@ -134,7 +134,7 @@ export default function Dashboard() {
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Task Manager</h1>
             <p className="text-gray-600">Welcome, {user?.email}</p>
           </div>
           <button
@@ -144,58 +144,16 @@ export default function Dashboard() {
             Sign Out
           </button>
         </div>
-
-        {/* Add New Task Form */}
-        <div className="bg-white p-6 rounded-lg shadow mb-8">
-          <h2 className="text-xl font-semibold mb-4">Add New Task</h2>
-          <form onSubmit={addTask} className="space-y-4">
-            <div>
-              <input
-                type="text"
-                placeholder="Task title"
-                value={newTask.title}
-                onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                required
-              />
-            </div>
-            <div>
-              <textarea
-                placeholder="Task description"
-                value={newTask.description}
-                onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                rows={3}
-              />
-            </div>
-            <div>
-              <select
-                value={newTask.status}
-                onChange={(e) => setNewTask({ ...newTask, status: e.target.value })}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="pending">Pending</option>
-                <option value="in-progress">In Progress</option>
-                <option value="completed">Completed</option>
-              </select>
-            </div>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              Add Task
-            </button>
-          </form>
-        </div>
+      
 
         {/* Tasks List */}
         <div className="bg-white rounded-lg shadow">
           <div className="p-6 border-b">
-            <h2 className="text-xl font-semibold">Your Tasks ({tasks.length})</h2>
+            <h2 className="text-xl text-gray-600">Your Tasks : {tasks.length}</h2>
           </div>
           <div className="divide-y">
             {tasks.length === 0 ? (
-              <p className="p-6 text-gray-500 text-center">No tasks yet. Add your first task above!</p>
+              <p className="p-6 text-gray-500 text-center">No tasks yet. Add your first task below!</p>
             ) : (
               tasks.map((task) => (
                 <div key={task.id} className="p-6">
@@ -205,7 +163,7 @@ export default function Dashboard() {
                         type="text"
                         value={editingTask.title}
                         onChange={(e) => setEditingTask({ ...editingTask, title: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                       />
                       <textarea
                         value={editingTask.description}
@@ -241,7 +199,7 @@ export default function Dashboard() {
                   ) : (
                     <div>
                       <div className="flex justify-between items-start mb-2">
-                        <h3 className="text-lg font-semibold">{task.title}</h3>
+                        <h3 className="text-lg font-semibold text-gray-700">{task.title}</h3>
                         <div className="flex space-x-2">
                           <button
                             onClick={() => setEditingTask(task)}
@@ -276,6 +234,54 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+      {/* Add New Task Form */}
+        <div className="bg-white p-4 rounded-lg shadow mt-1 max-w-3xl mx-auto">
+
+
+
+          <h2 className="text-xl text-gray-600">Add New Task</h2>
+          <form onSubmit={addTask} className="space-y-4">
+            <div>
+              <input
+                type="text"
+                placeholder="Task title"
+                value={newTask.title}
+                onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+            </div>
+            <div>
+              <textarea
+                placeholder="Task description"
+                value={newTask.description}
+                onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                rows={3}
+              />
+            </div>
+            <div>
+              <select
+                value={newTask.status}
+                onChange={(e) => setNewTask({ ...newTask, status: e.target.value })}
+                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-400"
+>
+                <option value="pending" className="text-gray-400">Pending</option>
+                <option value="in-progress" className="text-gray-400">In Progress</option>
+                <option value="completed" className="text-gray-400">Completed</option>
+              </select>
+            </div>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              Add Task
+            </button>
+          </form>
+        </div>
     </div>
   )
+
+  
 }
+
