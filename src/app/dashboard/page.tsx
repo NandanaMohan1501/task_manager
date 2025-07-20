@@ -134,7 +134,7 @@ export default function Dashboard() {
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Task Manager</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Task Tracker</h1>
             <p className="text-gray-600">Welcome, {user?.email}</p>
           </div>
           <button
