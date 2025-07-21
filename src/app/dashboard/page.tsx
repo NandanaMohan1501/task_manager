@@ -3,6 +3,30 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+  DragOverEvent,
+  DragOverlay,
+  useDroppable,
+  rectIntersection,
+} 
+from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import {
+  useSortable,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 interface Task {
   id: string
@@ -17,6 +41,151 @@ interface User {
   email?: string
 }
 
+interface SortableTaskProps {
+  task: Task
+  onEdit: (task: Task) => void
+  onDelete: (id: string) => void
+  isEditing: boolean
+  editingTask: Task | null
+  onUpdate: (e: React.FormEvent) => void
+  onCancelEdit: () => void
+  setEditingTask: (task: Task | null) => void
+}
+
+interface DroppableColumnProps {
+  status: string
+  title: string
+  emoji: string
+  tasks: Task[]
+  children: React.ReactNode
+}
+
+function DroppableColumn({ status, title, emoji, tasks, children }: DroppableColumnProps) {
+  const { isOver, setNodeRef } = useDroppable({
+    id: status,
+  })
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm">
+      <div className="p-4 border-b border-gray-200">
+        <h3 className="font-semibold text-gray-700 flex items-center">
+          {emoji} {title} <span className="ml-2 text-sm bg-gray-100 px-2 py-1 rounded">{tasks.length}</span>
+        </h3>
+      </div>
+      <div
+        ref={setNodeRef}
+        className={`p-4 space-y-3 min-h-[300px] transition-all duration-200 ${
+          isOver ? 'bg-blue-50 border-2 border-blue-300 border-dashed' : 'border-2 border-transparent'
+        }`}
+      >
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function SortableTask({ 
+  task, 
+  onEdit, 
+  onDelete, 
+  isEditing, 
+  editingTask, 
+  onUpdate, 
+  onCancelEdit, 
+  setEditingTask 
+}: SortableTaskProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: task.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  }
+
+  if (isEditing && editingTask?.id === task.id) {
+    return (
+      <div ref={setNodeRef} style={style} className="bg-white p-4 rounded-lg shadow-sm border">
+        <form onSubmit={onUpdate} className="space-y-3">
+          <input
+            type="text"
+            value={editingTask.title}
+            onChange={(e) => setEditingTask({ ...editingTask, title: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          />
+          <textarea
+            value={editingTask.description}
+            onChange={(e) => setEditingTask({ ...editingTask, description: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            rows={2}
+          />
+          <div className="flex space-x-2">
+            <button
+              type="submit"
+              className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+            >
+              Save
+            </button>
+            <button
+              type="button"
+              onClick={onCancelEdit}
+              className="px-3 py-1 bg-gray-600 text-white text-xs rounded hover:bg-gray-700"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    )
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className="bg-white p-4 rounded-lg shadow-sm border cursor-move hover:shadow-md transition-shadow"
+    >
+      <div className="flex justify-between items-start mb-2">
+        <h3 className="text-sm font-semibold text-gray-800 line-clamp-2">{task.title}</h3>
+        <div className="flex space-x-1 ml-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onEdit(task)
+            }}
+            className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+          >
+            Edit
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onDelete(task.id)
+            }}
+            className="px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+      {task.description && (
+        <p className="text-xs text-gray-600 mb-2 line-clamp-3">{task.description}</p>
+      )}
+      <div className="text-xs text-gray-500">
+        {new Date(task.created_at).toLocaleDateString()}
+      </div>
+    </div>
+  )
+}
+
 export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null)
   const [tasks, setTasks] = useState<Task[]>([])
@@ -24,7 +193,16 @@ export default function Dashboard() {
   const [newTask, setNewTask] = useState({ title: '', description: '', status: 'pending' })
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [updatingTaskId, setUpdatingTaskId] = useState<string | null>(null)
+  const [activeTask, setActiveTask] = useState<Task | null>(null)
   const router = useRouter()
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
 
   useEffect(() => {
     const checkUser = async () => {
@@ -103,6 +281,25 @@ export default function Dashboard() {
     }
   }
 
+  const updateTaskStatus = async (taskId: string, newStatus: string) => {
+    setUpdatingTaskId(taskId)
+    
+    const { error } = await supabase
+      .from('tasks')
+      .update({ status: newStatus })
+      .eq('id', taskId)
+
+    if (error) {
+      console.error('Error updating task status:', error)
+    } else {
+      setTasks(tasks.map(task => 
+        task.id === taskId ? { ...task, status: newStatus } : task
+      ))
+    }
+    
+    setUpdatingTaskId(null)
+  }
+
   const deleteTask = async (id: string) => {
     const { error } = await supabase
       .from('tasks')
@@ -116,9 +313,63 @@ export default function Dashboard() {
     }
   }
 
+  const handleDragStart = (event: any) => {
+    const { active } = event
+    const task = tasks.find(t => t.id === active.id)
+    setActiveTask(task || null)
+  }
+
+  const handleDragOver = (event: DragOverEvent) => {
+    const { active, over } = event
+    
+    if (!over) return
+
+    const activeId = active.id as string
+    const overId = over.id as string
+
+    // If we're over a droppable container
+    if (['pending', 'in-progress', 'completed'].includes(overId)) {
+      const activeTask = tasks.find(task => task.id === activeId)
+      
+      if (activeTask && activeTask.status !== overId) {
+        // Optimistically update the UI
+        setTasks(prevTasks => 
+          prevTasks.map(task => 
+            task.id === activeId 
+              ? { ...task, status: overId }
+              : task
+          )
+        )
+      }
+    }
+  }
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    setActiveTask(null)
+
+    if (!over) return
+
+    const activeTaskId = active.id as string
+    const overContainerId = over.id as string
+
+    // If dropped on a container (status column)
+    if (['pending', 'in-progress', 'completed'].includes(overContainerId)) {
+      const task = tasks.find(t => t.id === activeTaskId)
+      if (task && task.status !== overContainerId) {
+        // Update in database
+        updateTaskStatus(activeTaskId, overContainerId)
+      }
+    }
+  }
+
   const signOut = async () => {
     await supabase.auth.signOut()
     router.push('/')
+  }
+
+  const getTasksByStatus = (status: string) => {
+    return tasks.filter(task => task.status === status)
   }
 
   if (loading) {
@@ -129,6 +380,11 @@ export default function Dashboard() {
     )
   }
 
+  const pendingTasks = getTasksByStatus('pending')
+  const inProgressTasks = getTasksByStatus('in-progress')
+  const completedTasks = getTasksByStatus('completed')
+  const activeTasks = pendingTasks.length + inProgressTasks.length
+
   return (
     <div className="min-h-screen bg-gray-50 relative">
       {/* Hover trigger area */}
@@ -136,8 +392,6 @@ export default function Dashboard() {
         className="fixed left-0 top-0 w-4 h-full z-30 bg-transparent"
         onMouseEnter={() => setSidebarOpen(true)}
       ></div>
-
-
 
       {/* Sidebar */}
       <div
@@ -198,7 +452,7 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <div className="transition-all duration-300">
-        <div className="max-w-4xl mx-auto py-8 px-4">
+        <div className="max-w-7xl mx-auto py-8 px-4">
           {/* Header */}
           <div className="flex justify-between items-center mb-8">
             <div className="flex items-center">
@@ -213,147 +467,168 @@ export default function Dashboard() {
               </button>
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">Task Tracker</h1>
-                <p className="text-gray-600">Welcome, {user?.email}</p>
+                <p className="text-gray-600">Welcome, {user?.email} • {activeTasks} active tasks</p>
               </div>
             </div>
-            <button
-              onClick={signOut}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-            >
-              Sign Out
-            </button>
-          </div>
-
-          {/* Tasks List */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="p-6 border-b">
-              <h2 className="text-xl text-gray-600">Current Tasks : {tasks.filter(task => task.status !== 'completed').length}</h2>
-            </div>
-            <div className="divide-y">
-              {tasks.length === 0 ? (
-                <p className="p-6 text-gray-500 text-center">No tasks yet. Add your first task below!</p>
-              ) : (
-                tasks.map((task) => (
-                  <div key={task.id} className="p-6">
-                    {editingTask?.id === task.id ? (
-                      <form onSubmit={updateTask} className="space-y-4">
-                        <input
-                          type="text"
-                          value={editingTask.title}
-                          onChange={(e) => setEditingTask({ ...editingTask, title: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                        />
-                        <textarea
-                          value={editingTask.description}
-                          onChange={(e) => setEditingTask({ ...editingTask, description: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                          rows={3}
-                        />
-                        <select
-                          value={editingTask.status}
-                          onChange={(e) => setEditingTask({ ...editingTask, status: e.target.value })}
-                          className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                        >
-                          <option value="pending">Pending</option>
-                          <option value="in-progress">In Progress</option>
-                          <option value="completed">Completed</option>
-                        </select>
-                        <div className="flex space-x-2">
-                          <button
-                            type="submit"
-                            className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700"
-                          >
-                            Save
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setEditingTask(null)}
-                            className="px-3 py-1 bg-gray-600 text-white text-sm rounded hover:bg-gray-700"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </form>
-                    ) : (
-                      <div>
-                        <div className="flex justify-between items-start mb-2">
-                          <h3 className="text-lg font-semibold text-gray-700">{task.title}</h3>
-                          <div className="flex space-x-2">
-                            <button
-                              onClick={() => setEditingTask(task)}
-                              className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => deleteTask(task.id)}
-                              className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </div>
-                        <p className="text-gray-600 mb-2">{task.description}</p>
-                        <div className="flex justify-between items-center text-sm text-gray-500">
-                          <span className={`px-2 py-1 rounded text-xs ${
-                            task.status === 'completed' ? 'bg-green-100 text-green-800' :
-                            task.status === 'in-progress' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
-                            {task.status}
-                          </span>
-                          <span>{new Date(task.created_at).toLocaleDateString()}</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))
-              )}
-            </div>
+            
           </div>
 
           {/* Add New Task Form */}
-          <div className="bg-white p-4 rounded-lg shadow mt-6">
+          <div className="bg-white p-6 rounded-lg shadow mb-8">
             <h2 className="text-xl text-gray-600 mb-4">Add New Task</h2>
-            <form onSubmit={addTask} className="space-y-4">
-              <div>
+            <form onSubmit={addTask} className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="md:col-span-2">
                 <input
                   type="text"
                   placeholder="Task title"
                   value={newTask.title}
                   onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-600"
                   required
-                />
-              </div>
-              <div>
-                <textarea
-                  placeholder="Task description"
-                  value={newTask.description}
-                  onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  rows={3}
                 />
               </div>
               <div>
                 <select
                   value={newTask.status}
                   onChange={(e) => setNewTask({ ...newTask, status: e.target.value })}
-                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-400"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 >
-                  <option value="pending" className="text-gray-400">Pending</option>
-                  <option value="in-progress" className="text-gray-400">In Progress</option>
-                  <option value="completed" className="text-gray-400">Completed</option>
+                  <option value="pending">🟡 Pending</option>
+                  <option value="in-progress">🔵 In Progress</option>
+                  <option value="completed">✅ Completed</option>
                 </select>
               </div>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                Add Task
-              </button>
+              <div>
+                <button
+                  type="submit"
+                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  Add Task
+                </button>
+              </div>
+              <div className="md:col-span-4">
+                <textarea
+                  placeholder="Task description (optional)"
+                  value={newTask.description}
+                  onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-"
+                  rows={2}
+                />
+              </div>
             </form>
           </div>
+
+          {/* Kanban Board */}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={rectIntersection}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDragEnd={handleDragEnd}
+          >
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Pending Column */}
+              <DroppableColumn 
+                status="pending" 
+                title="Pending" 
+                emoji="🟡" 
+                tasks={pendingTasks}
+              >
+                <SortableContext
+                  items={pendingTasks.map(task => task.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {pendingTasks.map((task) => (
+                    <SortableTask
+                      key={task.id}
+                      task={task}
+                      onEdit={setEditingTask}
+                      onDelete={deleteTask}
+                      isEditing={editingTask?.id === task.id}
+                      editingTask={editingTask}
+                      onUpdate={updateTask}
+                      onCancelEdit={() => setEditingTask(null)}
+                      setEditingTask={setEditingTask}
+                    />
+                  ))}
+                  {pendingTasks.length === 0 && (
+                    <p className="text-gray-400 text-center py-8">No pending tasks</p>
+                  )}
+                </SortableContext>
+              </DroppableColumn>
+
+              {/* In Progress Column */}
+              <DroppableColumn 
+                status="in-progress" 
+                title="In Progress" 
+                emoji="🔵" 
+                tasks={inProgressTasks}
+              >
+                <SortableContext
+                  items={inProgressTasks.map(task => task.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {inProgressTasks.map((task) => (
+                    <SortableTask
+                      key={task.id}
+                      task={task}
+                      onEdit={setEditingTask}
+                      onDelete={deleteTask}
+                      isEditing={editingTask?.id === task.id}
+                      editingTask={editingTask}
+                      onUpdate={updateTask}
+                      onCancelEdit={() => setEditingTask(null)}
+                      setEditingTask={setEditingTask}
+                    />
+                  ))}
+                  {inProgressTasks.length === 0 && (
+                    <p className="text-gray-400 text-center py-8">No tasks in progress</p>
+                  )}
+                </SortableContext>
+              </DroppableColumn>
+
+              {/* Completed Column */}
+              <DroppableColumn 
+                status="completed" 
+                title="Completed" 
+                emoji="✅" 
+                tasks={completedTasks}
+              >
+                <SortableContext
+                  items={completedTasks.map(task => task.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {completedTasks.map((task) => (
+                    <SortableTask
+                      key={task.id}
+                      task={task}
+                      onEdit={setEditingTask}
+                      onDelete={deleteTask}
+                      isEditing={editingTask?.id === task.id}
+                      editingTask={editingTask}
+                      onUpdate={updateTask}
+                      onCancelEdit={() => setEditingTask(null)}
+                      setEditingTask={setEditingTask}
+                    />
+                  ))}
+                  {completedTasks.length === 0 && (
+                    <p className="text-gray-400 text-center py-8">No completed tasks</p>
+                  )}
+                </SortableContext>
+              </DroppableColumn>
+            </div>
+
+            <DragOverlay>
+              {activeTask ? (
+                <div className="bg-white p-4 rounded-lg shadow-lg border-2 border-blue-400 opacity-90 rotate-3">
+                  <h3 className="text-sm font-semibold text-gray-800">{activeTask.title}</h3>
+                  {activeTask.description && (
+                    <p className="text-xs text-gray-600 mt-1">{activeTask.description}</p>
+                  )}
+                </div>
+              ) : null}
+            </DragOverlay>
+          </DndContext>
         </div>
       </div>
     </div>
