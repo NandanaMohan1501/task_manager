@@ -474,7 +474,7 @@ export default function Dashboard() {
           </div>
 
           {/* Add New Task Form */}
-          <div className="bg-white p-6 rounded-lg shadow mb-8">
+          <div className="bg-white p-6 rounded-lg shadow mb-8 max-w-4xl">
             <h2 className="text-xl text-gray-600 mb-4">Add New Task</h2>
             <form onSubmit={addTask} className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="md:col-span-2">
@@ -493,9 +493,9 @@ export default function Dashboard() {
                   onChange={(e) => setNewTask({ ...newTask, status: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 >
-                  <option value="pending">🟡 Pending</option>
-                  <option value="in-progress">🔵 In Progress</option>
-                  <option value="completed">✅ Completed</option>
+                  <option value="pending">Pending</option>
+                  <option value="in-progress">In Progress</option>
+                  <option value="completed">Completed</option>
                 </select>
               </div>
               <div>
@@ -531,7 +531,7 @@ export default function Dashboard() {
               <DroppableColumn 
                 status="pending" 
                 title="Pending" 
-                emoji="🟡" 
+                emoji="" 
                 tasks={pendingTasks}
               >
                 <SortableContext
@@ -561,7 +561,7 @@ export default function Dashboard() {
               <DroppableColumn 
                 status="in-progress" 
                 title="In Progress" 
-                emoji="🔵" 
+                emoji="" 
                 tasks={inProgressTasks}
               >
                 <SortableContext
@@ -591,7 +591,7 @@ export default function Dashboard() {
               <DroppableColumn 
                 status="completed" 
                 title="Completed" 
-                emoji="✅" 
+                emoji="" 
                 tasks={completedTasks}
               >
                 <SortableContext

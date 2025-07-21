@@ -11,6 +11,7 @@ export default function SignUp() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+  const [nickname, setNickname] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -92,6 +93,14 @@ export default function SignUp() {
             </Link>
           </div>
         </form>
+
+<input
+  type="text"
+  placeholder="Username/Nickname"
+  value={nickname}
+  onChange={(e) => setNickname(e.target.value)}
+  required
+/>
       </div>
     </div>
   )
