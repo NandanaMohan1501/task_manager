@@ -109,7 +109,7 @@ function SortableTask({
 
   if (isEditing && editingTask?.id === task.id) {
     return (
-      <div ref={setNodeRef} style={style} className="bg-white p-4 rounded-lg shadow-sm border">
+      <div ref={setNodeRef} style={style} className="bg-white p-4 rounded-lg shadow-sm border text-gray-400">
         <form onSubmit={onUpdate} className="space-y-3">
           <input
             type="text"
