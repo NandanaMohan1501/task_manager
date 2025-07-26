@@ -362,50 +362,26 @@ export default function Dashboard() {
     setActiveTask(task || null)
   }
 
-  const handleDragOver = (event: DragOverEvent) => {
-    const { active, over } = event
-    
-    if (!over) return
 
-    const activeId = active.id as string
-    const overId = over.id as string
 
-    // If we're over a droppable container
-    if (['pending', 'in-progress', 'completed'].includes(overId)) {
-      const activeTask = tasks.find(task => task.id === activeId)
-      
-      if (activeTask && activeTask.status !== overId) {
-        // Optimistically update the UI
-        setTasks(prevTasks => 
-          prevTasks.map(task => 
-            task.id === activeId 
-              ? { ...task, status: overId }
-              : task
-          )
-        )
-      }
+ const handleDragEnd = (event: DragEndEvent) => {
+  const { active, over } = event
+  setActiveTask(null)
+
+  if (!over) return
+
+  const activeTaskId = active.id as string
+  const overContainerId = over.id as string
+
+  // If dropped on a container (status column)
+  if (['pending', 'in-progress', 'completed'].includes(overContainerId)) {
+    const task = tasks.find(t => t.id === activeTaskId)
+    if (task && task.status !== overContainerId) {
+      // Only update in database - real-time subscription will update UI
+      updateTaskStatus(activeTaskId, overContainerId)
     }
   }
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event
-    setActiveTask(null)
-
-    if (!over) return
-
-    const activeTaskId = active.id as string
-    const overContainerId = over.id as string
-
-    // If dropped on a container (status column)
-    if (['pending', 'in-progress', 'completed'].includes(overContainerId)) {
-      const task = tasks.find(t => t.id === activeTaskId)
-      if (task && task.status !== overContainerId) {
-        // Update in database
-        updateTaskStatus(activeTaskId, overContainerId)
-      }
-    }
-  }
-
+}
   const signOut = async () => {
     await supabase.auth.signOut()
     router.push('/')
@@ -534,7 +510,7 @@ export default function Dashboard() {
                 <select
                   value={newTask.status}
                   onChange={(e) => setNewTask({ ...newTask, status: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 text-gray-400 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="pending">Pending</option>
                   <option value="in-progress">In Progress</option>
@@ -554,7 +530,7 @@ export default function Dashboard() {
                   placeholder="Task description (optional)"
                   value={newTask.description}
                   onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-600"
                   rows={2}
                 />
               </div>
@@ -566,7 +542,7 @@ export default function Dashboard() {
             sensors={sensors}
             collisionDetection={rectIntersection}
             onDragStart={handleDragStart}
-            onDragOver={handleDragOver}
+            
             onDragEnd={handleDragEnd}
           >
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
