@@ -18,16 +18,67 @@ export default function SignUp() {
     setLoading(true)
     setError('')
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-    })
+    try {
+      // Sign up the user with nickname in metadata
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            nickname: nickname, // Store nickname in user metadata
+          }
+        }
+      })
 
-    if (error) {
-      setError(error.message)
-    } else {
-      router.push('/dashboard')
+      if (authError) {
+        setError(authError.message)
+        setLoading(false)
+        return
+      }
+
+      // Save nickname to your table (if user exists)
+      if (authData.user) {
+        try {
+          const { error: profileError } = await supabase
+            .from('profiles') // Replace 'profiles' with your actual table name
+            .insert([
+              {
+                id: authData.user.id,
+                nickname: nickname,
+                email: email,
+                created_at: new Date().toISOString(),
+              }
+            ])
+
+          if (profileError) {
+            console.error('Profile creation failed:', profileError.message)
+            // Continue anyway - nickname is still stored in user metadata
+          }
+        } catch (profileErr) {
+          console.error('Error inserting into table:', profileErr)
+          // Continue anyway - nickname is still stored in user metadata
+        }
+      }
+
+      // Check if user needs email confirmation
+      if (authData.user && !authData.session) {
+        // User needs to confirm email - show success message
+        setError('Account created successfully! Please check your email and click the confirmation link to complete signup.')
+        setLoading(false)
+        return
+      }
+
+      // If user is immediately confirmed, redirect to login page
+      if (authData.user && authData.session) {
+        // Sign out the user first so they have to log in properly
+        await supabase.auth.signOut()
+        router.push('/login')
+      }
+    } catch (error) {
+      console.error('Signup error:', error)
+      setError('An unexpected error occurred during signup')
     }
+    
     setLoading(false)
   }
 
@@ -41,6 +92,21 @@ export default function SignUp() {
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
+            <div>
+              <label htmlFor="nickname" className="block text-sm font-medium text-gray-700">
+                Username/Nickname
+              </label>
+              <input
+                id="nickname"
+                name="nickname"
+                type="text"
+                required
+                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Choose a username"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+              />
+            </div>
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 Email address
@@ -93,14 +159,6 @@ export default function SignUp() {
             </Link>
           </div>
         </form>
-
-<input
-  type="text"
-  placeholder="Username/Nickname"
-  value={nickname}
-  onChange={(e) => setNickname(e.target.value)}
-  required
-/>
       </div>
     </div>
   )

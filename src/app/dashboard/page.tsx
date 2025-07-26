@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import {
   DndContext,
-  closestCenter,
   KeyboardSensor,
   PointerSensor,
   useSensor,
@@ -18,7 +17,6 @@ import {
 } 
 from '@dnd-kit/core'
 import {
-  arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
@@ -158,18 +156,24 @@ function SortableTask({
         <div className="flex space-x-1 ml-2">
           <button
             onClick={(e) => {
+              e.preventDefault()
               e.stopPropagation()
               onEdit(task)
             }}
+            onPointerDown={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
             className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
           >
             Edit
           </button>
           <button
             onClick={(e) => {
+              e.preventDefault()
               e.stopPropagation()
               onDelete(task.id)
             }}
+            onPointerDown={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
             className="px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700"
           >
             Delete
@@ -188,6 +192,7 @@ function SortableTask({
 
 export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null)
+  const [nickname, setNickname] = useState<string>('User') // Add nickname state
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [newTask, setNewTask] = useState({ title: '', description: '', status: 'pending' })
@@ -212,7 +217,45 @@ export default function Dashboard() {
         return
       }
 
+      // Debug: Log the entire user object to see what's available
+      console.log('Full user object:', user)
+      console.log('User metadata:', user.user_metadata)
+      console.log('User metadata nickname:', user.user_metadata?.nickname)
+
       setUser(user)
+      
+      // Try multiple ways to get the nickname
+      let userNickname = 'User' // Default fallback
+      
+      // Method 1: From user metadata
+      if (user.user_metadata?.nickname) {
+        userNickname = user.user_metadata.nickname
+        console.log('Found nickname in metadata:', userNickname)
+      } 
+      // Method 2: Try from database as fallback
+      else {
+        console.log('No nickname in metadata, trying database...')
+        try {
+          const { data: profile } = await supabase
+            .from('profiles') // Replace with your actual table name
+            .select('nickname')
+            .eq('id', user.id)
+            .single()
+          
+          console.log('Profile data from database:', profile)
+          
+          if (profile?.nickname) {
+            userNickname = profile.nickname
+            console.log('Found nickname in database:', userNickname)
+          }
+        } catch (error) {
+          console.error('Error fetching from database:', error)
+        }
+      }
+      
+      console.log('Final nickname being set:', userNickname)
+      setNickname(userNickname)
+      
       fetchTasks(user.id)
     }
 
@@ -411,9 +454,9 @@ export default function Dashboard() {
               </div>
               <div>
                 <h3 className="font-medium text-gray-900">
-                  {user?.email?.split('@')[0] || 'User'}
+                  {nickname}
                 </h3>
-                <p className="text-sm text-gray-500">{user?.email}</p>
+               
               </div>
             </div>
           </div>
@@ -467,7 +510,7 @@ export default function Dashboard() {
               </button>
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">Task Tracker</h1>
-                <p className="text-gray-600">Welcome, {user?.email} • {activeTasks} active tasks</p>
+                <p className="text-gray-600">Welcome, {nickname} • {activeTasks} active tasks</p>
               </div>
             </div>
             
@@ -511,7 +554,7 @@ export default function Dashboard() {
                   placeholder="Task description (optional)"
                   value={newTask.description}
                   onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   rows={2}
                 />
               </div>
