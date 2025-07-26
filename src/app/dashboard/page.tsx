@@ -126,14 +126,14 @@ function SortableTask({
           <div className="flex space-x-2">
             <button
               type="submit"
-              className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+              className="px-3 py-1 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700"
             >
               Save
             </button>
             <button
               type="button"
               onClick={onCancelEdit}
-              className="px-3 py-1 bg-gray-600 text-white text-xs rounded hover:bg-gray-700"
+              className="px-3 py-1 bg-white-600 text-black text-xs rounded-lg hover:bg-gray-700 shadow-sm border"
             >
               Cancel
             </button>
@@ -162,7 +162,7 @@ function SortableTask({
             }}
             onPointerDown={(e) => e.stopPropagation()}
             onKeyDown={(e) => e.stopPropagation()}
-            className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+            className="px-3 py-2 bg-violet-200 text-black shadow-sm text-xs rounded-xl hover:bg-violet-300 border-"
           >
             Edit
           </button>
@@ -174,7 +174,7 @@ function SortableTask({
             }}
             onPointerDown={(e) => e.stopPropagation()}
             onKeyDown={(e) => e.stopPropagation()}
-            className="px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700"
+            className="px-2 py-2 bg-violet-300 text-black text-xs rounded hover:bg-violet-400 shadow-sm"
           >
             Delete
           </button>
@@ -443,7 +443,7 @@ export default function Dashboard() {
               <li>
                 <a
                   href="/dashboard/tasks"
-                  className="flex items-center space-x-3 px-4 py-3 text-sm font-medium text-white bg-blue-600 rounded-lg"
+                  className="flex items-center space-x-3 px-4 py-3 text-sm font-medium text-white bg-violet-400 rounded-lg"
                 >
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
@@ -520,7 +520,7 @@ export default function Dashboard() {
               <div>
                 <button
                   type="submit"
-                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 bg-violet-400 text-white rounded-md  focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   Add Task
                 </button>
