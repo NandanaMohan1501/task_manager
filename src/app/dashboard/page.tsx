@@ -10,10 +10,10 @@ import {
   useSensor,
   useSensors,
   DragEndEvent,
-  DragOverEvent,
   DragOverlay,
   useDroppable,
   rectIntersection,
+  DragStartEvent,
 } 
 from '@dnd-kit/core'
 import {
@@ -174,7 +174,7 @@ function SortableTask({
             }}
             onPointerDown={(e) => e.stopPropagation()}
             onKeyDown={(e) => e.stopPropagation()}
-            className="px-2 py-2 bg-violet-300 text-black text-xs rounded hover:bg-violet-400 shadow-sm"
+            className="px-2 py-2 bg-violet-300 text-black text-xs rounded-xl hover:bg-violet-400 shadow-sm"
           >
             Delete
           </button>
@@ -356,7 +356,7 @@ export default function Dashboard() {
     }
   }
 
-  const handleDragStart = (event: any) => {
+  const handleDragStart = (event: DragStartEvent) => {
     const { active } = event
     const task = tasks.find(t => t.id === active.id)
     setActiveTask(task || null)
@@ -502,7 +502,7 @@ export default function Dashboard() {
                   placeholder="Task title"
                   value={newTask.title}
                   onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-600"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-violet-500 focus:border-violet-500 text-gray-600"
                   required
                 />
               </div>
@@ -510,7 +510,7 @@ export default function Dashboard() {
                 <select
                   value={newTask.status}
                   onChange={(e) => setNewTask({ ...newTask, status: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 text-gray-400 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 text-gray-400 rounded-md focus:outline-none focus:ring-violet-500 focus:border-violet-500"
                 >
                   <option value="pending">Pending</option>
                   <option value="in-progress">In Progress</option>
@@ -520,7 +520,7 @@ export default function Dashboard() {
               <div>
                 <button
                   type="submit"
-                  className="w-full px-4 py-2 bg-violet-400 text-white rounded-md  focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 bg-violet-400 text-white rounded-md  focus:outline-none focus:ring-2 focus:ring-violet-500"
                 >
                   Add Task
                 </button>
@@ -530,7 +530,7 @@ export default function Dashboard() {
                   placeholder="Task description (optional)"
                   value={newTask.description}
                   onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-600"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-violet-500 focus:border-violet-500 text-gray-600"
                   rows={2}
                 />
               </div>
